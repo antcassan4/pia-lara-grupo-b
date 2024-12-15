@@ -1,0 +1,32 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<header class="header">
+    <h1 class="text-center">Información</h1>
+    <br />
+</header>
+
+<section>
+    <div class="tags-container">
+        Total de audios grabados: {{ sumatorio_total }}
+    </div>
+    <div class="tags-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Etiquetas</th>
+                    <th>Cantidad</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for tag in tags %}
+                <tr>
+                    <td>{{ tag.tag }}</td>
+                    <td class="text-center">{{ tag.cantidad }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

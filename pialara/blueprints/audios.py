@@ -3,10 +3,11 @@ import boto3
 import random
 
 import bson.objectid
+from bson.objectid import ObjectId
 from flask import current_app
 from flask import Blueprint, render_template
 from flask import (
-    Blueprint, flash, redirect, render_template, request, url_for, jsonify
+    Blueprint, flash, redirect, render_template, request, url_for, jsonify, session
 )
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
@@ -231,3 +232,32 @@ def tag_search():
         flash("No se han encontrado resultados de la etiqueta '" + tag_name + "'", "danger")
 
     return render_template('audios/client_tag.html', tags=tags, tag_name=tag_name)
+
+@bp.route('/client-info', methods=['GET'])
+@login_required
+def client_info():
+    user_id = session["_user_id"]
+    audio = Audios()
+
+    pipeline = [
+        {
+            "$match": {
+                "usuario.id": ObjectId(user_id)
+            }
+        },
+        {
+            "$group": {
+                "_id": "$texto.tag",
+                "cantidad": {
+                    "$sum": 1
+                }
+            }
+        }
+    ]
+
+    cursor_list = list(audio.aggregate(pipeline))
+    tags = [{"tag": tag["_id"], "cantidad": tag["cantidad"]} for tag in cursor_list]
+    tags = sorted(tags, key=lambda x: x["tag"])
+    sumatorio_total = sum(tag["cantidad"] for tag in cursor_list)
+
+    return render_template("audios/client_info.html", user_id=user_id, tags=tags, sumatorio_total=sumatorio_total)
