@@ -231,3 +231,53 @@ def tag_search():
         flash("No se han encontrado resultados de la etiqueta '" + tag_name + "'", "danger")
 
     return render_template('audios/client_tag.html', tags=tags, tag_name=tag_name)
+
+from bson import ObjectId
+
+@bp.route('/client-info', defaults={'id': None})
+@bp.route('/client-info/<id>')
+@login_required
+def client_info(id=None):
+    total_audios = 0
+    audios_por_categoria = {}
+    logged_rol = current_user.rol
+    url = 'audios/client_info.html'
+
+    if logged_rol == "admin":
+        audios_model = Audios()
+
+        if id:
+            try:
+                # Asegurarse de convertir id a ObjectId si es necesario
+                user_id = ObjectId(id)  # Convertir id a ObjectId si es necesario
+                
+                # Modificar la consulta para usar 'usuario.id' si ese es el campo correcto
+                pipeline = [
+                    {"$match": {"usuario.id": user_id}},  # Cambié 'user_id' por 'usuario.id'
+                    {"$group": {"_id": "$texto.tag", "cantidad": {"$sum": 1}}}
+                ]
+                resultado = list(audios_model.aggregate(pipeline))  # Convertir en lista para depuración
+                print("Resultado del pipeline para usuario específico:", resultado)  # Depuración
+
+                if resultado:
+                    audios_por_categoria = {doc['_id']: doc['cantidad'] for doc in resultado}
+                    total_audios = sum(audios_por_categoria.values())
+                else:
+                    audios_por_categoria = {}
+                    total_audios = 0
+            except Exception as e:
+                print(f"Error en la agregación: {e}")
+                audios_por_categoria = {}
+                total_audios = 0
+        else:
+            # Resumen general de todos los usuarios
+            pipeline = [{"$group": {"_id": "$texto.tag", "cantidad": {"$sum": 1}}}]
+            resultado = audios_model.aggregate(pipeline)
+            audios_por_categoria = {doc['_id']: doc['cantidad'] for doc in resultado}
+            total_audios = sum(audios_por_categoria.values())
+
+    else:
+        return redirect(url_for('audios.client_tag'))
+
+    return render_template(url, total_audios=total_audios, audios_por_categoria=audios_por_categoria, usuario_id=id)
+
