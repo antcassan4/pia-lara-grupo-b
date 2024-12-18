@@ -1,0 +1,23 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<header class="header">
+    <br />
+<h1 class="text-center">Informes</h1>
+<br />
+</header>
+
+<section>
+    <h2>Información General</h2>
+    <p>Nombre: {{current_user.nombre}}</p>
+    {% for dato in informacion_general %}
+    <p>Total de clientes: {{ dato.total_clientes }}</p>
+    <p>Total de audios grabados: {{ dato.total_audios_clientes }}</p>
+    {% endfor %}
+    <br/>
+    <h2>Estadísticas</h2>
+{% for dato in estadisticas_audios %}
+{{ dato._id.tag }}: {{ dato.cantidad }}.<br/>
+    {% endfor %}
+                </section>
+{% endblock %}

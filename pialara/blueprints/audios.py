@@ -6,7 +6,7 @@ import bson.objectid
 from flask import current_app
 from flask import Blueprint, render_template
 from flask import (
-    Blueprint, flash, redirect, render_template, request, url_for, jsonify
+    Blueprint, flash, redirect, render_template, request, url_for, jsonify, session
 )
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
@@ -16,6 +16,7 @@ from pialara.models.Frases import Frases
 from pialara.models.Usuario import Usuario
 from pialara.models.Syllabus import Syllabus
 from pialara.models.Clicks import Clicks
+from pialara.decorators import rol_required
 
 from datetime import datetime
 from random import sample
@@ -231,3 +232,16 @@ def tag_search():
         flash("No se han encontrado resultados de la etiqueta '" + tag_name + "'", "danger")
 
     return render_template('audios/client_tag.html', tags=tags, tag_name=tag_name)
+
+@bp.route("/client-report", methods=['GET'])
+@login_required
+@rol_required(['tecnico'])
+def client_report():
+    usuarios = Usuario()
+    audios = Audios()
+
+    informacion_general = usuarios.aggregate([{"$match": {"parent": current_user.email }}, {"$lookup": {"from": "audios", "localField": "_id", "foreignField": "usuario.id", "as": "audios"}}, {"$unwind": "$audios"}, {"$group": {"_id": {"tag": "$audios.texto.tag"}, "cantidad": {"$sum": 1}}}])
+
+    estadisticas_audios = audios.aggregate([{"$match": {"usuario.parent": current_user.email}}, {"$group": {"_id": {"tag": "$texto.tag"}, "cantidad": {"$sum": 1}}}])
+
+    return render_template("audios/client_report.html", informacion_general=informacion_general, estadisticas_audios=estadisticas_audios )
